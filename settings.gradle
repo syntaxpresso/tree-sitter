@@ -1,0 +1,3 @@
+rootProject.name = 'tree-sitter'
+include 'tree-sitter'
+include 'tree-sitter-java'

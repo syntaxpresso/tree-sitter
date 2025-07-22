@@ -1,0 +1,78 @@
+import io.github.syntaxexpresso.treesitter.build.GenTask
+
+plugins {
+    alias(libs.plugins.download)
+    id 'base'
+    id 'java'
+}
+
+allprojects {
+    group = 'io.github.syntaxpresso'
+    repositories {
+        mavenCentral()
+    }
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        testImplementation platform(libs.junit.bom)
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        if(project.name != 'tree-sitter'){
+            implementation project(":tree-sitter")
+        }
+    }
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            mavenLocal()
+        }
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    tasks.register('downloadSource', DownloadSourceTask)
+
+    tasks.register('buildNative', BuildNativeTask) {
+        zigExe = rootProject.downloadZig.zigExe
+        dependsOn downloadSource, rootProject.downloadZig
+    }
+
+    tasks.withType(Javadoc) {
+        options.locale = 'en_US'
+        options.JFlags = ["-Duser.language=en_US"]
+    }
+}
+
+tasks.register('downloadMiniSign', DownloadMiniSignTask)
+
+tasks.register('downloadZig', DownloadZigTask){
+    miniSignExe = downloadMiniSign.miniSignExe
+    dependsOn downloadMiniSign
+}
+
+tasks.register("gen", GenTask) {
+    group = "build setup"
+    description = "Generate sub project for tree sitter parser"
+}
